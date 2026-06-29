@@ -135,8 +135,8 @@ export interface TransferRequestRecord {
   updatedAt?: string;
 }
 
-/** ตรงกับ models/Delivery.js enum จริง — ไม่มี ARRIVING */
-export type DeliveryStatus = "DISPATCHED" | "EN_ROUTE" | "DELIVERED" | "FAILED";
+/** ตรงกับ models/Delivery.js enum จริง — อนุมัติ -> เตรียมจัดส่ง -> กำลังจัดส่ง -> ส่งมอบแล้ว */
+export type DeliveryStatus = "PREPARING" | "DISPATCHED" | "EN_ROUTE" | "DELIVERED" | "FAILED";
 
 export interface DeliveryRecord {
   _id: string;
@@ -152,6 +152,63 @@ export interface DeliveryRecord {
   received_at: string | null;
   createdAt?: string;
   updatedAt?: string;
+  // ฟิลด์แนบเพิ่มจาก GET /api/delivery (join จาก TransferRequest -> drug_ref/from_hospital/to_hospital)
+  drug_generic_name?: string;
+  drug_trade_name?: string;
+  quantity?: number;
+  from_hospital_id?: string;
+  from_hospital_name?: string;
+  from_coordinates?: [number, number] | null; // [lng, lat]
+  to_hospital_id?: string;
+  to_hospital_name?: string;
+  to_coordinates?: [number, number] | null; // [lng, lat]
+}
+
+/** GET /api/drugs/search?q= ส่งกลับรายการนี้ */
+export interface DrugSearchResult {
+  drugObjectId: string;
+  drug_id: string;
+  generic_name: string;
+  trade_name: string;
+  category: DrugCategory;
+}
+
+/** GET /api/ai/expiry-redistribution ส่งกลับรายการนี้ */
+export interface ExpiryRedistributionItem {
+  inventory_id: string;
+  drug_id: string;
+  drug_name: string;
+  trade_name: string;
+  category: DrugCategory;
+  from_hospital_id: string;
+  from_hospital: string;
+  expiring_lot: {
+    lot_number: string;
+    expiry_date: string;
+    quantity: number;
+  };
+  ai_suggestion: {
+    to_hospital_id?: string;
+    hospital_name: string;
+    average_monthly_usage?: number;
+    distance_km?: number;
+    confidence_score: number;
+    reasoning: string;
+  };
+}
+
+/** POST /api/ai/search-emergency ส่งกลับรายการนี้ */
+export interface EmergencySearchResult {
+  inventory_id: string;
+  hospital_id: string;
+  hospital_name: string;
+  coordinates: { lng: number; lat: number };
+  available_quantity: number;
+  distance_km: number;
+  estimated_time_minutes: number;
+  /** true = คำนวณจาก Longdo Route API ไม่สำเร็จ (เน็ตหลุด/ยังไม่ตั้งค่า key ฝั่ง backend) ใช้ค่าประมาณเส้นตรงแทน */
+  is_estimate?: boolean;
+  network_zone: string;
 }
 
 export type UserRole = "Chief_Pharmacist" | "Nurse" | "Admin";

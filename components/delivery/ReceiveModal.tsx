@@ -4,10 +4,10 @@ import { useState } from "react";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import { TextInput, FormLabel } from "@/components/ui/FormControls";
-import type { MockDeliveryView } from "@/lib/mock-delivery";
+import type { DeliveryRecord } from "@/lib/types";
 
 interface ReceiveModalProps {
-  delivery: MockDeliveryView | null;
+  delivery: DeliveryRecord | null;
   receivedByName: string;
   submitting: boolean;
   onClose: () => void;
@@ -15,8 +15,9 @@ interface ReceiveModalProps {
 }
 
 /**
- * Page 5 ตามสเปก MVP: พิมพ์ lot number ด้วยมือ (ไม่ใช้กล้อง QR ตามที่ตัดออกใน MVP)
- * ระบบ verify lot ถูกต้องก่อนบันทึก received_by, received_at และเปลี่ยนเป็น DELIVERED
+ * Page 5: พิมพ์ lot number ด้วยมือ (ไม่ใช้กล้อง QR ตามที่ตัดออกใน MVP)
+ * Backend (PATCH /api/delivery/:id/receive) จะ verify ว่า lot ตรงกับล็อตที่ถูกหักออก
+ * จากคลังต้นทางตอนอนุมัติคำขอก่อนบันทึก DELIVERED
  */
 export default function ReceiveModal({
   delivery,

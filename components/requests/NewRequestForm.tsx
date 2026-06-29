@@ -74,10 +74,12 @@ export default function NewRequestForm({
     [networkItems, ownHospitalObjectId]
   );
 
-  // Pre-fill จาก Alert Queue (Page 2) — คำนวณค่าเริ่มต้นแบบ sync ตอน mount
+  // Pre-fill จาก Alert Queue / AI Expiry Redistribution / Emergency Search — คำนวณค่าเริ่มต้นแบบ sync ตอน mount
   // (lazy useState initializer แทนการ setState ใน useEffect เพื่อเลี่ยง cascading render)
+  // ถ้ามี drugObjectId ตรงๆ มาด้วย (มาจาก AI/ค้นหาฉุกเฉิน) ใช้ตรงนั้นเลย แม่นยำกว่าจับคู่ชื่อ
   const [drugObjectId, setDrugObjectIdState] = useState<string>(() => {
     if (!prefill) return "";
+    if (prefill.drugObjectId) return prefill.drugObjectId;
     const match = drugOptions.find((opt) =>
       opt.name.toLowerCase().includes(prefill.drugName.toLowerCase())
     );
@@ -91,12 +93,13 @@ export default function NewRequestForm({
 
   const [donorHospitalObjectId, setDonorHospitalObjectId] = useState<string>(() => {
     if (!prefill) return "";
+    if (prefill.donorHospitalObjectId) return prefill.donorHospitalObjectId;
     const initialDonors = buildDonors(networkItems, ownHospitalObjectId, drugObjectId);
     const match = initialDonors.find((d) => d.hospital.name === prefill.donorHospitalName);
     return match?.hospital.objectId ?? "";
   });
 
-  const [quantity, setQuantity] = useState(5);
+  const [quantity, setQuantity] = useState(prefill?.suggestedQuantity ?? 5);
   const [reason, setReason] = useState("");
 
   // เปลี่ยนยาแล้วเคลียร์ donor เดิมทันทีถ้าไม่ตรงกับยาใหม่ (สั่งจาก event handler ไม่ใช่ effect)
@@ -109,7 +112,8 @@ export default function NewRequestForm({
   }
 
   const selectedDonor = donors.find((d) => d.hospital.objectId === donorHospitalObjectId);
-  const selectedDrugName = drugOptions.find((d) => d.drugObjectId === drugObjectId)?.name ?? "";
+  const selectedDrugName =
+    drugOptions.find((d) => d.drugObjectId === drugObjectId)?.name ?? prefill?.drugName ?? "";
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

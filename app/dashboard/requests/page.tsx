@@ -215,6 +215,7 @@ function RequestsPageInner() {
                       processing={approveMutation.isPending || rejectMutation.isPending}
                       onApprove={() => setApproveTarget(item)}
                       onReject={() => setRejectTarget(item)}
+                      onTrackDelivery={() => router.push("/dashboard/delivery")}
                     />
                   ))}
                 </div>

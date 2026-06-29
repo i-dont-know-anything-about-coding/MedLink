@@ -2,15 +2,19 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search } from "lucide-react";
+import { Search, Siren } from "lucide-react";
 import { useNetworkOverview } from "@/lib/hooks/use-overview";
 import { formatNumber } from "@/lib/format";
+import EmergencySearchModal from "@/components/dashboard/EmergencySearchModal";
+import type { DrugSearchResult } from "@/lib/types";
 
 interface SearchResult {
   key: string;
   kind: "drug" | "hospital";
   label: string;
   sublabel: string;
+  drugObjectId?: string;
+  category?: DrugSearchResult["category"];
 }
 
 export default function TopbarSearch() {
@@ -18,6 +22,7 @@ export default function TopbarSearch() {
   const overviewQuery = useNetworkOverview();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [emergencyDrug, setEmergencyDrug] = useState<DrugSearchResult | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -48,6 +53,8 @@ export default function TopbarSearch() {
           kind: "drug",
           label: item.drug.generic_name,
           sublabel: item.drug.trade_name,
+          drugObjectId: item.drug.objectId,
+          category: item.drug.category,
         });
       }
 
@@ -68,64 +75,87 @@ export default function TopbarSearch() {
   function handleSelect(result: SearchResult) {
     setOpen(false);
     setQuery("");
-    if (result.kind === "drug") {
-      router.push(`/dashboard/inventory?q=${encodeURIComponent(result.label)}`);
+    if (result.kind === "drug" && result.drugObjectId && result.category) {
+      // เลือกยา -> เปิด Modal ค้นหา รพ.ที่มียาเหลือ + คำนวณเส้นทาง/เวลาที่เร็วที่สุดให้ทันที
+      setEmergencyDrug({
+        drugObjectId: result.drugObjectId,
+        drug_id: result.drugObjectId,
+        generic_name: result.label,
+        trade_name: result.sublabel,
+        category: result.category,
+      });
     } else {
       router.push("/dashboard/overview");
     }
   }
 
   return (
-    <div className="relative" ref={containerRef}>
-      <div className="relative ml-2 w-64 max-w-xs flex-shrink-0">
-        <Search
-          size={14}
-          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-lo"
-        />
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setOpen(true);
-          }}
-          onFocus={() => setOpen(true)}
-          placeholder="ค้นหายา / โรงพยาบาล..."
-          className="w-full rounded-lg border border-border bg-bg py-1.5 pl-8 pr-3 text-[12px] text-text-hi placeholder:text-text-lo/70 outline-none focus:border-accent"
-        />
+    <>
+      <div className="relative" ref={containerRef}>
+        <div className="relative ml-2 w-64 max-w-xs flex-shrink-0">
+          <Search
+            size={14}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-lo"
+          />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setOpen(true);
+            }}
+            onFocus={() => setOpen(true)}
+            placeholder="ค้นหายา / โรงพยาบาล..."
+            className="w-full rounded-lg border border-border bg-bg py-1.5 pl-8 pr-3 text-[12px] text-text-hi placeholder:text-text-lo/70 outline-none focus:border-accent"
+          />
+        </div>
+
+        {open && query.trim() && (
+          <div className="absolute left-2 top-9 z-50 w-72 overflow-hidden rounded-xl border border-border bg-panel shadow-2xl shadow-black/40">
+            <div className="max-h-72 overflow-y-auto">
+              {overviewQuery.isLoading ? (
+                <div className="px-3.5 py-4 text-center text-[12px] text-text-lo">
+                  กำลังโหลด...
+                </div>
+              ) : results.length === 0 ? (
+                <div className="px-3.5 py-4 text-center text-[12px] text-text-lo">
+                  ไม่พบผลลัพธ์สำหรับ &quot;{query}&quot;
+                </div>
+              ) : (
+                results.map((result) => (
+                  <button
+                    key={result.key}
+                    onClick={() => handleSelect(result)}
+                    className="flex w-full items-center justify-between gap-2 border-b border-border/60 px-3.5 py-2.5 text-left transition-colors last:border-b-0 hover:bg-panel-hover"
+                  >
+                    <div>
+                      <div className="text-[12px] font-medium text-text-hi">{result.label}</div>
+                      <div className="text-[10px] text-text-lo">{result.sublabel}</div>
+                    </div>
+                    {result.kind === "drug" ? (
+                      <span className="flex flex-shrink-0 items-center gap-1 rounded bg-accent/15 px-1.5 py-0.5 text-[9px] text-accent">
+                        <Siren size={10} /> ค้นหา รพ.
+                      </span>
+                    ) : (
+                      <span className="flex-shrink-0 rounded bg-bg px-1.5 py-0.5 text-[9px] text-text-lo">
+                        โรงพยาบาล
+                      </span>
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
-      {open && query.trim() && (
-        <div className="absolute left-2 top-9 z-50 w-72 overflow-hidden rounded-xl border border-border bg-panel shadow-2xl shadow-black/40">
-          <div className="max-h-72 overflow-y-auto">
-            {overviewQuery.isLoading ? (
-              <div className="px-3.5 py-4 text-center text-[12px] text-text-lo">
-                กำลังโหลด...
-              </div>
-            ) : results.length === 0 ? (
-              <div className="px-3.5 py-4 text-center text-[12px] text-text-lo">
-                ไม่พบผลลัพธ์สำหรับ &quot;{query}&quot;
-              </div>
-            ) : (
-              results.map((result) => (
-                <button
-                  key={result.key}
-                  onClick={() => handleSelect(result)}
-                  className="flex w-full items-center justify-between gap-2 border-b border-border/60 px-3.5 py-2.5 text-left transition-colors last:border-b-0 hover:bg-panel-hover"
-                >
-                  <div>
-                    <div className="text-[12px] font-medium text-text-hi">{result.label}</div>
-                    <div className="text-[10px] text-text-lo">{result.sublabel}</div>
-                  </div>
-                  <span className="flex-shrink-0 rounded bg-bg px-1.5 py-0.5 text-[9px] text-text-lo">
-                    {result.kind === "drug" ? "ยา" : "โรงพยาบาล"}
-                  </span>
-                </button>
-              ))
-            )}
-          </div>
-        </div>
+      {emergencyDrug && (
+        <EmergencySearchModal
+          key={emergencyDrug.drugObjectId}
+          initialDrug={emergencyDrug}
+          onClose={() => setEmergencyDrug(null)}
+        />
       )}
-    </div>
+    </>
   );
 }
