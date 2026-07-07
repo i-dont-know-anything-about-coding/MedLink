@@ -29,6 +29,7 @@ export default function ReceiveModal({
   const [lotNumber, setLotNumber] = useState("");
 
   if (!delivery) return null;
+  const isBlood = delivery.item_type === "BLOOD";
 
   function handleClose() {
     setLotNumber("");
@@ -39,7 +40,7 @@ export default function ReceiveModal({
     <Modal
       open={!!delivery}
       onClose={handleClose}
-      title="เซ็นรับยา — ยืนยัน Lot Number"
+      title={isBlood ? "เซ็นรับเลือด — ยืนยันรหัสถุงเลือด" : "เซ็นรับยา — ยืนยัน Lot Number"}
       footer={
         <>
           <Button variant="cancel" onClick={handleClose} disabled={submitting}>
@@ -49,23 +50,27 @@ export default function ReceiveModal({
             disabled={!lotNumber.trim() || submitting}
             onClick={() => onConfirm(lotNumber.trim())}
           >
-            {submitting ? "กำลังบันทึก..." : "ยืนยันรับยา"}
+            {submitting ? "กำลังบันทึก..." : isBlood ? "ยืนยันรับเลือด" : "ยืนยันรับยา"}
           </Button>
         </>
       }
     >
       <div className="flex flex-col gap-3">
         <div className="rounded-md bg-bg px-3 py-2 text-[12px] text-text-lo">
-          {delivery.drug_generic_name} จำนวน {delivery.quantity} หน่วย จาก{" "}
-          {delivery.from_hospital_name}
+          {delivery.item_display_name || delivery.drug_generic_name} จำนวน {delivery.quantity}{" "}
+          {isBlood ? "ยูนิต" : "หน่วย"} จาก {delivery.from_hospital_name}
         </div>
 
         <div>
-          <FormLabel>พิมพ์ Lot Number บนกล่อง/ฉลากยาที่ได้รับ</FormLabel>
+          <FormLabel>
+            {isBlood
+              ? "พิมพ์รหัสถุงเลือด (Bag Number) บนฉลากถุงที่ได้รับ"
+              : "พิมพ์ Lot Number บนกล่อง/ฉลากยาที่ได้รับ"}
+          </FormLabel>
           <TextInput
             value={lotNumber}
             onChange={(e) => setLotNumber(e.target.value)}
-            placeholder="เช่น LOT-A112-2024"
+            placeholder={isBlood ? "เช่น BAG-OP-1234" : "เช่น LOT-A112-2024"}
             className="font-data"
             autoFocus
           />

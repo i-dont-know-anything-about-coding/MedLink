@@ -24,6 +24,13 @@ export const API_ROUTES = {
   deliveries: `${API_BASE_URL}/api/delivery`,
   deliveryStatus: (id: string) => `${API_BASE_URL}/api/delivery/${id}/status`,
   deliveryReceive: (id: string) => `${API_BASE_URL}/api/delivery/${id}/receive`,
+  // 🩸 คลังเลือด — คู่ขนานกับ endpoint ฝั่งยาด้านบน
+  networkBloodOverview: `${API_BASE_URL}/api/blood/network-overview`,
+  bloodAlertQueue: `${API_BASE_URL}/api/ai/blood/alert-queue`,
+  bloodExpiryRedistribution: `${API_BASE_URL}/api/ai/blood/expiry-redistribution`,
+  searchEmergencyBlood: `${API_BASE_URL}/api/ai/blood/search-emergency`,
+  hospitalBloodInventory: (hospitalObjectId: string) =>
+    `${API_BASE_URL}/api/hospitals/${hospitalObjectId}/blood-inventory`,
 } as const;
 
 export const HEALTH_ZONE = 8;

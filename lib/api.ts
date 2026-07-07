@@ -3,12 +3,17 @@ import { authHeader } from "./auth";
 import type {
   AlertQueueItem,
   ApiEnvelope,
+  BloodAlertQueueItem,
+  BloodExpiryRedistributionItem,
+  BloodInventoryItem,
   DeliveryRecord,
   DeliveryStatus,
   DrugSearchResult,
+  EmergencyBloodSearchResult,
   EmergencySearchResult,
   ExpiryRedistributionItem,
   InventoryItem,
+  NetworkBloodOverviewItem,
   NetworkOverviewItem,
   TransferRequestRecord,
 } from "./types";
@@ -78,6 +83,57 @@ export async function fetchHospitalInventory(
   return parseJsonOrThrow<InventoryItem[]>(res);
 }
 
+// =========================================================================
+// 🩸 คลังเลือด — คู่ขนานกับฟังก์ชันฝั่งยาด้านบนทุกจุด
+// =========================================================================
+
+/** GET /api/blood/network-overview — ใช้สร้างตัวเลือกหมู่เลือด/รพ.ต้นทางตอนสร้างคำขอยืมเลือด, ไม่ต้อง login */
+export async function fetchNetworkBloodOverview(): Promise<NetworkBloodOverviewItem[]> {
+  const res = await fetch(API_ROUTES.networkBloodOverview);
+  return parseJsonOrThrow<NetworkBloodOverviewItem[]>(res);
+}
+
+/** GET /api/ai/blood/alert-queue — คิวแจ้งเตือนเลือดวิกฤตพร้อมคำแนะนำ AI, ไม่ต้อง login */
+export async function fetchBloodAlertQueue(): Promise<BloodAlertQueueItem[]> {
+  const res = await fetch(API_ROUTES.bloodAlertQueue);
+  return parseJsonOrThrow<BloodAlertQueueItem[]>(res);
+}
+
+/** GET /api/ai/blood/expiry-redistribution — ถุงเลือดเสี่ยงหมดอายุใน 7 วัน พร้อม AI แนะนำ รพ.ปลายทาง, ไม่ต้อง login */
+export async function fetchBloodExpiryRedistribution(): Promise<BloodExpiryRedistributionItem[]> {
+  const res = await fetch(API_ROUTES.bloodExpiryRedistribution);
+  return parseJsonOrThrow<BloodExpiryRedistributionItem[]>(res);
+}
+
+/**
+ * POST /api/ai/blood/search-emergency — ค้นหา รพ.ที่มีเลือดกรุ๊ปนี้ (หรือกรุ๊ปทดแทนที่เข้ากันได้)
+ * เหลือพร้อมปล่อยยืม เรียงตามเวลาขนส่งเร็วที่สุด ต้อง login
+ */
+export async function searchEmergencyBlood(
+  bloodGroup: string,
+  componentType: string
+): Promise<EmergencyBloodSearchResult[]> {
+  const res = await fetch(API_ROUTES.searchEmergencyBlood, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeader() },
+    body: JSON.stringify({ blood_group: bloodGroup, component_type: componentType }),
+  });
+  return parseJsonOrThrow<EmergencyBloodSearchResult[]>(res);
+}
+
+/**
+ * GET /api/hospitals/:hospital_id/blood-inventory — คลังเลือดของ รพ.ตัวเอง (Page 3 แท็บเลือด)
+ * ต้อง login และ hospitalObjectId ต้องตรงกับ รพ.ที่ login อยู่เท่านั้น
+ */
+export async function fetchHospitalBloodInventory(
+  hospitalObjectId: string
+): Promise<BloodInventoryItem[]> {
+  const res = await fetch(API_ROUTES.hospitalBloodInventory(hospitalObjectId), {
+    headers: authHeader(),
+  });
+  return parseJsonOrThrow<BloodInventoryItem[]>(res);
+}
+
 /** GET /api/transfers/inbox — คำขอที่ รพ.เราเป็นผู้ให้ยืม รออนุมัติ (Page 4 Inbox), ต้อง login */
 export async function fetchInboxTransfers(): Promise<TransferRequestRecord[]> {
   const res = await fetch(API_ROUTES.transfersInbox, { headers: authHeader() });
@@ -91,15 +147,28 @@ export async function fetchOutboxTransfers(): Promise<TransferRequestRecord[]> {
 }
 
 /**
- * POST /api/transfers — สร้างคำขอยืมยาใหม่ (Page 4 New Request), ต้อง login
+ * POST /api/transfers — สร้างคำขอยืมยา/เลือดใหม่ (Page 4 New Request), ต้อง login
  * ส่งแค่ from_hospital (รพ.ต้นทาง/ผู้ให้ยืมที่เลือก) — backend จะดึง to_hospital
  * (รพ.ของเราเอง) จาก JWT token เสมอ ไม่ต้องส่งมาจากฝั่งเรา
+ *
+ * 🩸 item_type แยกว่าเป็นคำขอยา (DRUG, ค่าเริ่มต้นถ้าไม่ส่ง) หรือคำขอเลือด (BLOOD)
+ * - DRUG  ส่ง drug_ref
+ * - BLOOD ส่ง blood_group + component_type แทน (ไม่ส่ง drug_ref)
  */
-export interface CreateTransferPayload {
-  from_hospital: string;
-  drug_ref: string;
-  quantity_requested: number;
-}
+export type CreateTransferPayload =
+  | {
+      item_type?: "DRUG";
+      from_hospital: string;
+      drug_ref: string;
+      quantity_requested: number;
+    }
+  | {
+      item_type: "BLOOD";
+      from_hospital: string;
+      blood_group: string;
+      component_type: string;
+      quantity_requested: number;
+    };
 
 export async function createTransferRequest(
   payload: CreateTransferPayload

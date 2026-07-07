@@ -16,8 +16,15 @@ interface RejectModalProps {
 function hospitalName(h: string | Hospital): string {
   return typeof h === "string" ? h : h.hospital_name;
 }
-function drugName(d: string | Drug): string {
+function drugName(d: string | Drug | null | undefined): string {
+  if (!d) return "";
   return typeof d === "string" ? d : d.generic_name;
+}
+function itemDisplayName(request: TransferRequestRecord): string {
+  if (request.item_type === "BLOOD") {
+    return `เลือดกรุ๊ป ${request.blood_group ?? ""} (${request.component_type ?? ""})`;
+  }
+  return drugName(request.drug_ref);
 }
 
 export default function RejectModal({
@@ -39,7 +46,7 @@ export default function RejectModal({
     <Modal
       open={!!request}
       onClose={handleClose}
-      title={`ปฏิเสธคำขอ — ${drugName(request.drug_ref)}`}
+      title={`ปฏิเสธคำขอ — ${itemDisplayName(request)}`}
       footer={
         <>
           <Button variant="cancel" onClick={handleClose} disabled={submitting}>
@@ -57,7 +64,7 @@ export default function RejectModal({
     >
       <div className="flex flex-col gap-3">
         <div className="rounded-md bg-bg px-3 py-2 text-[12px] text-text-lo">
-          {hospitalName(request.to_hospital)} ขอยืม {drugName(request.drug_ref)}
+          {hospitalName(request.to_hospital)} ขอยืม {itemDisplayName(request)}
         </div>
         <div>
           <FormLabel>เหตุผลในการปฏิเสธ (จำเป็น)</FormLabel>

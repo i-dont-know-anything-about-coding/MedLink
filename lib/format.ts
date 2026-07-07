@@ -73,3 +73,25 @@ export function expiryUrgencyClass(expiryDateIso: string): string {
   if (days <= 180) return "text-warning";
   return "text-text-lo";
 }
+
+/** เกล็ดเลือด (PLT) เก็บได้สั้นมาก ใช้เกณฑ์วันเข้มกว่ายา/PRC/FFP */
+export function bloodExpiryUrgencyClass(expiryDateIso: string): string {
+  const days = (new Date(expiryDateIso).getTime() - Date.now()) / 86_400_000;
+  if (days < 0) return "text-critical";
+  if (days <= 3) return "text-critical";
+  if (days <= 7) return "text-warning";
+  return "text-text-lo";
+}
+
+export function componentTypeLabel(componentType: string): string {
+  switch (componentType) {
+    case "PRC":
+      return "เม็ดเลือดแดงเข้มข้น (PRC)";
+    case "FFP":
+      return "พลาสมาสดแช่แข็ง (FFP)";
+    case "PLT":
+      return "เกล็ดเลือด (PLT)";
+    default:
+      return componentType;
+  }
+}

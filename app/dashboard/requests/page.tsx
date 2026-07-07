@@ -10,11 +10,11 @@ import {
   useRejectTransfer,
   useCreateTransfer,
 } from "@/lib/hooks/use-transfers";
-import { useNetworkOverview } from "@/lib/hooks/use-overview";
+import { useNetworkBloodOverview, useNetworkOverview } from "@/lib/hooks/use-overview";
 import { useRequireSession } from "@/lib/use-require-session";
 import { useToast } from "@/lib/toast";
 import { consumeRequestPrefill, type RequestPrefill } from "@/lib/request-prefill";
-import NewRequestForm from "@/components/requests/NewRequestForm";
+import NewRequestForm, { type NewRequestSubmitPayload } from "@/components/requests/NewRequestForm";
 import { InboxRequestCard, OutboxRequestCard } from "@/components/requests/RequestCard";
 import ApproveModal from "@/components/requests/ApproveModal";
 import RejectModal from "@/components/requests/RejectModal";
@@ -52,6 +52,7 @@ function RequestsPageInner() {
   const inboxQuery = useInboxTransfers();
   const outboxQuery = useOutboxTransfers();
   const overviewQuery = useNetworkOverview();
+  const bloodOverviewQuery = useNetworkBloodOverview();
 
   const createMutation = useCreateTransfer();
   const approveMutation = useApproveTransfer();
@@ -64,23 +65,29 @@ function RequestsPageInner() {
 
   if (!user) return null;
 
-  function handleCreateRequest(payload: {
-    drugObjectId: string;
-    drugName: string;
-    donorHospitalObjectId: string;
-    donorHospitalName: string;
-    quantity: number;
-    reason: string;
-  }) {
+  function handleCreateRequest(payload: NewRequestSubmitPayload) {
     createMutation.mutate(
-      {
-        from_hospital: payload.donorHospitalObjectId,
-        drug_ref: payload.drugObjectId,
-        quantity_requested: payload.quantity,
-      },
+      payload.itemType === "BLOOD"
+        ? {
+            item_type: "BLOOD",
+            from_hospital: payload.donorHospitalObjectId,
+            blood_group: payload.bloodGroup as string,
+            component_type: payload.componentType as string,
+            quantity_requested: payload.quantity,
+          }
+        : {
+            from_hospital: payload.donorHospitalObjectId,
+            drug_ref: payload.drugObjectId as string,
+            quantity_requested: payload.quantity,
+          },
       {
         onSuccess: () => {
-          showToast("ส่งคำขอยืมยาสำเร็จ — รออนุมัติจากโรงพยาบาลต้นทาง", "success");
+          showToast(
+            payload.itemType === "BLOOD"
+              ? "ส่งคำขอยืมเลือดสำเร็จ — รออนุมัติจากโรงพยาบาลต้นทาง"
+              : "ส่งคำขอยืมยาสำเร็จ — รออนุมัติจากโรงพยาบาลต้นทาง",
+            "success"
+          );
           setShowForm(false);
           setTab("outbox");
           router.replace("/dashboard/requests");
@@ -135,25 +142,26 @@ function RequestsPageInner() {
   return (
     <div className="flex h-full flex-col gap-4 p-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-[15px] font-semibold text-text-hi">คำขอยืม-คืนยา</h1>
+        <h1 className="text-[15px] font-semibold text-text-hi">คำขอยืม-คืนยา/เลือด</h1>
         {!showForm && (
           <button
             onClick={() => setShowForm(true)}
             className="rounded-lg bg-accent px-3.5 py-2 text-[12px] font-medium text-white hover:bg-accent/90"
           >
-            + ขอยืมยา
+            + ขอยืมยา/เลือด
           </button>
         )}
       </div>
 
       {showForm ? (
-        overviewQuery.isLoading ? (
+        overviewQuery.isLoading || bloodOverviewQuery.isLoading ? (
           <div className="flex flex-1 items-center justify-center text-[13px] text-text-lo">
             กำลังโหลดข้อมูลเครือข่าย...
           </div>
         ) : (
           <NewRequestForm
             networkItems={overviewQuery.data ?? []}
+            networkBloodItems={bloodOverviewQuery.data ?? []}
             ownHospitalObjectId={user.hospitalObjectId}
             ownHospitalName={user.hospitalName}
             prefill={prefill}
@@ -212,6 +220,8 @@ function RequestsPageInner() {
                     <InboxRequestCard
                       key={item._id}
                       item={item}
+                      ownHospitalObjectId={user.hospitalObjectId}
+                      ownHospitalName={user.hospitalName}
                       processing={approveMutation.isPending || rejectMutation.isPending}
                       onApprove={() => setApproveTarget(item)}
                       onReject={() => setRejectTarget(item)}
@@ -238,6 +248,8 @@ function RequestsPageInner() {
                   <OutboxRequestCard
                     key={item._id}
                     item={item}
+                    ownHospitalObjectId={user.hospitalObjectId}
+                    ownHospitalName={user.hospitalName}
                     processing={cancelMutation.isPending}
                     onTrack={() => router.push("/dashboard/delivery")}
                     onCancel={() => handleCancel(item._id)}

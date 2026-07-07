@@ -1,8 +1,9 @@
 "use client";
 
-import { Truck, CheckCircle } from "lucide-react";
+import { Truck, CheckCircle, Download } from "lucide-react";
 import type { Drug, Hospital, TransferRequestRecord, TransferStatus } from "@/lib/types";
 import { formatNumber, formatThaiDateTime } from "@/lib/format";
+import { downloadTransferRequestPdf } from "@/lib/transfer-document";
 
 const STATUS_LABEL: Record<TransferStatus, string> = {
   PENDING: "รออนุมัติ",
@@ -32,16 +33,34 @@ export function StatusChip({ status }: { status: TransferStatus }) {
   );
 }
 
-/** backend populate from_hospital/to_hospital/drug_ref มาเป็น object เสมอใน inbox/outbox response */
-function hospitalName(h: string | Hospital): string {
-  return typeof h === "string" ? h : h.hospital_name;
+/** บางครั้ง backend ไม่ populate from_hospital/to_hospital เป็น object (ส่งมาเป็น ObjectId string เฉยๆ)
+ * ถ้า id ตรงกับ รพ. ของผู้ใช้ที่ login อยู่ ให้ใช้ชื่อ รพ. ของผู้ใช้แทน ไม่ใช่ขึ้น id ตรงๆ */
+function hospitalName(
+  h: string | Hospital,
+  ownHospitalObjectId?: string,
+  ownHospitalName?: string
+): string {
+  if (typeof h !== "string") return h.hospital_name;
+  if (ownHospitalObjectId && ownHospitalName && h === ownHospitalObjectId) return ownHospitalName;
+  return h;
 }
-function drugName(d: string | Drug): string {
+function drugName(d: string | Drug | null | undefined): string {
+  if (!d) return "";
   return typeof d === "string" ? d : d.generic_name;
+}
+
+/** 🩸 แสดงชื่อรายการที่ขอยืมได้ทั้งกรณียาและเลือด โดยไม่ต้องเช็ค item_type ซ้ำในทุกจุดที่ใช้ */
+function itemDisplayName(item: TransferRequestRecord): string {
+  if (item.item_type === "BLOOD") {
+    return `เลือดกรุ๊ป ${item.blood_group ?? ""} (${item.component_type ?? ""})`;
+  }
+  return drugName(item.drug_ref);
 }
 
 interface InboxCardProps {
   item: TransferRequestRecord;
+  ownHospitalObjectId: string;
+  ownHospitalName: string;
   onApprove: () => void;
   onReject: () => void;
   onTrackDelivery: () => void;
@@ -50,6 +69,8 @@ interface InboxCardProps {
 
 export function InboxRequestCard({
   item,
+  ownHospitalObjectId,
+  ownHospitalName,
   onApprove,
   onReject,
   onTrackDelivery,
@@ -62,9 +83,9 @@ export function InboxRequestCard({
     <div className="rounded-lg border border-border bg-panel p-3.5">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <div className="text-[13px] font-medium text-text-hi">{drugName(item.drug_ref)}</div>
+          <div className="text-[13px] font-medium text-text-hi">{itemDisplayName(item)}</div>
           <div className="mt-0.5 text-[11px] text-text-lo">
-            ขอจาก: {hospitalName(item.to_hospital)}
+            ขอจาก: {hospitalName(item.to_hospital, ownHospitalObjectId, ownHospitalName)}
           </div>
         </div>
         <StatusChip status={item.status} />
@@ -104,22 +125,39 @@ export function InboxRequestCard({
         </div>
       )}
 
-      {showTrack && (
-        <div className="mt-3 flex justify-end border-t border-border pt-3">
-          <button
-            onClick={onTrackDelivery}
-            className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-accent/90"
-          >
-            <Truck size={13} />
-            ดูสถานะการจัดส่ง
-          </button>
-        </div>
-      )}
-
-      {item.status === "COMPLETED" && (
-        <div className="mt-3 flex items-center gap-1.5 border-t border-border pt-3 text-[11px] text-safe">
-          <CheckCircle size={13} />
-          ส่งมอบยาเรียบร้อยแล้ว
+      {(showTrack || item.status === "COMPLETED" || item.status === "REJECTED") && (
+        <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
+          {item.status === "COMPLETED" ? (
+            <div className="flex items-center gap-1.5 text-[11px] text-safe">
+              <CheckCircle size={13} />
+              ส่งมอบยาเรียบร้อยแล้ว
+            </div>
+          ) : (
+            <span />
+          )}
+          <div className="flex gap-2">
+            <button
+              onClick={() =>
+                downloadTransferRequestPdf(item, {
+                  objectId: ownHospitalObjectId,
+                  name: ownHospitalName,
+                })
+              }
+              className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-[11px] text-text-hi transition-colors hover:bg-panel-hover"
+            >
+              <Download size={13} />
+              ดาวน์โหลด PDF
+            </button>
+            {showTrack && (
+              <button
+                onClick={onTrackDelivery}
+                className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-accent/90"
+              >
+                <Truck size={13} />
+                ดูสถานะการจัดส่ง
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -128,12 +166,21 @@ export function InboxRequestCard({
 
 interface OutboxCardProps {
   item: TransferRequestRecord;
+  ownHospitalObjectId: string;
+  ownHospitalName: string;
   onTrack: () => void;
   onCancel: () => void;
   processing: boolean;
 }
 
-export function OutboxRequestCard({ item, onTrack, onCancel, processing }: OutboxCardProps) {
+export function OutboxRequestCard({
+  item,
+  ownHospitalObjectId,
+  ownHospitalName,
+  onTrack,
+  onCancel,
+  processing,
+}: OutboxCardProps) {
   // APPROVED = Delivery สร้างแล้ว (PREPARING), IN_TRANSIT = กำลังขนส่ง — ทั้งสองควรดูได้
   const showTrack = item.status === "APPROVED" || item.status === "IN_TRANSIT";
 
@@ -141,9 +188,9 @@ export function OutboxRequestCard({ item, onTrack, onCancel, processing }: Outbo
     <div className="rounded-lg border border-border bg-panel p-3.5">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <div className="text-[13px] font-medium text-text-hi">{drugName(item.drug_ref)}</div>
+          <div className="text-[13px] font-medium text-text-hi">{itemDisplayName(item)}</div>
           <div className="mt-0.5 text-[11px] text-text-lo">
-            ขอจาก: {hospitalName(item.from_hospital)}
+            ขอจาก: {hospitalName(item.from_hospital, ownHospitalObjectId, ownHospitalName)}
           </div>
         </div>
         <StatusChip status={item.status} />
@@ -180,6 +227,20 @@ export function OutboxRequestCard({ item, onTrack, onCancel, processing }: Outbo
             className="rounded-md border border-border px-3 py-1.5 text-[11px] text-text-lo transition-colors hover:bg-panel-hover hover:text-text-hi disabled:opacity-50"
           >
             ยกเลิกคำขอ
+          </button>
+        )}
+        {item.status !== "PENDING" && item.status !== "CANCELLED" && (
+          <button
+            onClick={() =>
+              downloadTransferRequestPdf(item, {
+                objectId: ownHospitalObjectId,
+                name: ownHospitalName,
+              })
+            }
+            className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-[11px] text-text-hi transition-colors hover:bg-panel-hover"
+          >
+            <Download size={13} />
+            ดาวน์โหลด PDF
           </button>
         )}
         {showTrack && (

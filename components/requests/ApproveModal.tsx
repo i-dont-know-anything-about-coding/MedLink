@@ -18,8 +18,15 @@ interface ApproveModalProps {
 function hospitalName(h: string | Hospital): string {
   return typeof h === "string" ? h : h.hospital_name;
 }
-function drugName(d: string | Drug): string {
+function drugName(d: string | Drug | null | undefined): string {
+  if (!d) return "";
   return typeof d === "string" ? d : d.generic_name;
+}
+function itemDisplayName(request: TransferRequestRecord): string {
+  if (request.item_type === "BLOOD") {
+    return `เลือดกรุ๊ป ${request.blood_group ?? ""} (${request.component_type ?? ""})`;
+  }
+  return drugName(request.drug_ref);
 }
 
 export default function ApproveModal({
@@ -63,7 +70,7 @@ function ApproveModalContent({
     <Modal
       open
       onClose={onClose}
-      title={`อนุมัติคำขอ — ${drugName(request.drug_ref)}`}
+      title={`อนุมัติคำขอ — ${itemDisplayName(request)}`}
       footer={
         <>
           <Button variant="cancel" onClick={onClose} disabled={submitting}>
@@ -81,7 +88,7 @@ function ApproveModalContent({
     >
       <div className="flex flex-col gap-3">
         <div className="rounded-md bg-bg px-3 py-2 text-[12px] text-text-lo">
-          {hospitalName(request.to_hospital)} ขอยืม {drugName(request.drug_ref)} จำนวน{" "}
+          {hospitalName(request.to_hospital)} ขอยืม {itemDisplayName(request)} จำนวน{" "}
           <strong className="text-text-hi">{formatNumber(request.quantity_requested)}</strong> หน่วย
         </div>
 

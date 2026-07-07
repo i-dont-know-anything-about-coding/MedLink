@@ -119,7 +119,7 @@ export default function DeliveryTimelinePanel({
         <div className="mt-4 flex flex-col gap-1.5 border-t border-border pt-3 text-[12px]">
           <div className="flex justify-between">
             <span className="text-text-lo">ยาที่ขนส่ง</span>
-            <span className="text-right text-text-hi">{delivery.drug_generic_name || "—"}</span>
+            <span className="text-right text-text-hi">{delivery.item_display_name || delivery.drug_generic_name || "—"}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-text-lo">จำนวน</span>

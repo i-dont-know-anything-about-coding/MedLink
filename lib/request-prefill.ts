@@ -1,4 +1,5 @@
 export interface RequestPrefill {
+  itemType?: "DRUG" | "BLOOD";
   drugName: string;
   donorHospitalName: string;
   donorInventoryId?: string;
@@ -7,6 +8,9 @@ export interface RequestPrefill {
   donorHospitalObjectId?: string;
   /** จำนวนแนะนำให้กรอกล่วงหน้า (เช่น จำนวนล็อตที่เสี่ยงหมดอายุที่อยากโอนย้ายทั้งหมด) */
   suggestedQuantity?: number;
+  /** 🩸 ใช้เมื่อ itemType === "BLOOD" แทน drugObjectId */
+  bloodGroup?: string;
+  componentType?: string;
 }
 
 const PREFILL_KEY = "stocksync_request_prefill";

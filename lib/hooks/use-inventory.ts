@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchHospitalInventory } from "@/lib/api";
+import { fetchHospitalBloodInventory, fetchHospitalInventory } from "@/lib/api";
 
 /**
  * GET /api/hospitals/:hospital_id/inventory — คลังยาของ รพ.ตัวเองโดยตรง
@@ -14,6 +14,15 @@ export function useOwnInventory(hospitalObjectId: string | undefined) {
   return useQuery({
     queryKey: ["hospital-inventory", hospitalObjectId],
     queryFn: () => fetchHospitalInventory(hospitalObjectId as string),
+    enabled: Boolean(hospitalObjectId),
+  });
+}
+
+/** 🩸 GET /api/hospitals/:hospital_id/blood-inventory — คลังเลือดของ รพ.ตัวเองโดยตรง (คู่ขนานกับ useOwnInventory) */
+export function useOwnBloodInventory(hospitalObjectId: string | undefined) {
+  return useQuery({
+    queryKey: ["hospital-blood-inventory", hospitalObjectId],
+    queryFn: () => fetchHospitalBloodInventory(hospitalObjectId as string),
     enabled: Boolean(hospitalObjectId),
   });
 }

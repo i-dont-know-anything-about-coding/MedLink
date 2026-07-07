@@ -8,7 +8,7 @@ import { formatNumber } from "@/lib/format";
 interface ExpiryQueueProps {
   items: ExpiryRedistributionItem[];
   ownHospitalObjectId: string;
-  onAction: (item: ExpiryRedistributionItem) => void;
+  onTransfer: (item: ExpiryRedistributionItem) => void;
 }
 
 function daysUntil(expiryDateIso: string): number {
@@ -23,8 +23,7 @@ function formatExpiryDate(iso: string): string {
   });
 }
 
-export default function ExpiryQueue({ items, ownHospitalObjectId, onAction }: ExpiryQueueProps) {
-  // เรียงลำดับล็อตที่ใกล้หมดอายุที่สุดไว้บนสุด (เหลือเวลาน้อยที่สุดก่อน)
+export default function ExpiryQueue({ items, ownHospitalObjectId, onTransfer }: ExpiryQueueProps) {
   const sorted = useMemo(
     () =>
       [...items].sort(
@@ -48,11 +47,8 @@ export default function ExpiryQueue({ items, ownHospitalObjectId, onAction }: Ex
       {sorted.map((item) => {
         const days = daysUntil(item.expiring_lot.expiry_date);
         const isUrgent = days <= 60;
-        const hasSuggestion = Boolean(item.ai_suggestion.to_hospital_id);
+        const hasSuggestion = Boolean(item.ai_suggestion.hospital_name);
         const isOwnExpiringStock = item.from_hospital_id === ownHospitalObjectId;
-        // AI แนะนำว่า "เรา" (รพ.ที่ login อยู่) ควรเป็นผู้ไปยืมล็อตนี้จาก from_hospital ออกมาใช้
-        const weAreSuggestedRecipient = item.ai_suggestion.to_hospital_id === ownHospitalObjectId;
-        const canRequestTransfer = hasSuggestion && weAreSuggestedRecipient;
 
         return (
           <div
@@ -98,20 +94,15 @@ export default function ExpiryQueue({ items, ownHospitalObjectId, onAction }: Ex
               </span>
             </div>
 
-            {canRequestTransfer ? (
-              <div className="mt-2 flex justify-end">
-                <button
-                  onClick={() => onAction(item)}
-                  className="flex items-center gap-1 rounded-md bg-accent px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-accent/90"
-                >
-                  สร้างฟอร์มโอนย้ายยา <ArrowRight size={12} />
-                </button>
-              </div>
-            ) : isOwnExpiringStock && hasSuggestion ? (
-              <div className="mt-2 text-right text-[10px] text-text-lo">
-                รอ {item.ai_suggestion.hospital_name} กดสร้างคำขอยืมยานี้
-              </div>
-            ) : null}
+            <div className="mt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={() => onTransfer(item)}
+                className="flex items-center gap-1 rounded-md bg-accent px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-accent/90"
+              >
+                โอนย้ายยา <ArrowRight size={12} />
+              </button>
+            </div>
           </div>
         );
       })}

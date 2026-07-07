@@ -118,11 +118,27 @@ export type TransferStatus =
   | "REJECTED"
   | "CANCELLED";
 
+/** ตรงกับ models/BloodInventory.js enum จริง */
+export type BloodGroup = "A+" | "A-" | "B+" | "B-" | "O+" | "O-" | "AB+" | "AB-";
+/** PRC=เม็ดเลือดแดงเข้มข้น, FFP=พลาสมาสดแช่แข็ง, PLT=เกล็ดเลือด */
+export type ComponentType = "PRC" | "FFP" | "PLT";
+
+export type TransferItemType = "DRUG" | "BLOOD";
+
+/**
+ * 🩸 item_type บอกว่าเป็นคำขอยา (DRUG) หรือคำขอเลือด (BLOOD)
+ * - DRUG:  drug_ref มีค่า, blood_group/component_type เป็น undefined
+ * - BLOOD: blood_group/component_type มีค่า, drug_ref เป็น undefined/null
+ * (ดู models/TransferRequest.js — required แบบมีเงื่อนไขตาม item_type)
+ */
 export interface TransferRequestRecord {
   _id: string;
   from_hospital: string | Hospital;
   to_hospital: string | Hospital;
-  drug_ref: string | Drug;
+  item_type: TransferItemType;
+  drug_ref?: string | Drug | null;
+  blood_group?: BloodGroup;
+  component_type?: ComponentType;
   created_by: string;
   approved_by: string | null;
   quantity_requested: number;
@@ -135,7 +151,102 @@ export interface TransferRequestRecord {
   updatedAt?: string;
 }
 
-/** ตรงกับ models/Delivery.js enum จริง — อนุมัติ -> เตรียมจัดส่ง -> กำลังจัดส่ง -> ส่งมอบแล้ว */
+export interface BloodLot {
+  _id?: string;
+  bag_number: string;
+  expiry_date: string;
+  quantity_in_bag: number;
+}
+
+/**
+ * Mongoose BloodInventory document แบบเต็ม — ใช้กับ
+ * GET /api/hospitals/:hospital_id/blood-inventory (คลังเลือดของ รพ.ตัวเอง)
+ */
+export interface BloodInventoryItem {
+  _id: string;
+  hospital_ref: string;
+  blood_group: BloodGroup;
+  component_type: ComponentType;
+  available_units: number;
+  reserved_units: number;
+  safety_unit_level: number;
+  lots: BloodLot[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/** GET /api/blood/network-overview ส่งกลับรายการนี้ (คู่ขนานกับ NetworkOverviewItem ฝั่งยา) */
+export interface NetworkBloodOverviewItem {
+  blood_inventory_id: string;
+  hospital: {
+    objectId: string; // ใช้ส่งเป็น from_hospital ตอนสร้างคำขอยืมเลือด
+    id: string;
+    name: string;
+    type: HospitalType;
+    coordinates: [number, number];
+  };
+  blood_group: BloodGroup;
+  component_type: ComponentType;
+  available_units: number;
+  reserved_units: number;
+  safety_unit_level: number;
+  stock_status: StockStatus;
+}
+
+/** GET /api/ai/blood/alert-queue ส่งกลับรายการนี้ */
+export interface BloodAlertQueueItem {
+  alert_id: string;
+  blood_group: BloodGroup;
+  component_type: ComponentType;
+  hospital_in_need: string;
+  current_stock: number;
+  safety_level: number;
+  detected_at: string;
+  ai_suggestion: {
+    donor_inventory_id?: string;
+    hospital_name: string;
+    available_units?: number;
+    distance_km?: number;
+    reasoning: string;
+  };
+}
+
+/** GET /api/ai/blood/expiry-redistribution ส่งกลับรายการนี้ */
+export interface BloodExpiryRedistributionItem {
+  blood_inventory_id: string;
+  blood_group: BloodGroup;
+  component_type: ComponentType;
+  from_hospital: string;
+  expiring_bag: {
+    bag_number: string;
+    expiry_date: string;
+    quantity: number;
+  };
+  ai_suggestion: {
+    to_hospital_id?: string;
+    hospital_name: string;
+    current_stock?: number;
+    distance_km?: number;
+    reasoning: string;
+  };
+}
+
+/** POST /api/ai/blood/search-emergency ส่งกลับรายการนี้ */
+export interface EmergencyBloodSearchResult {
+  blood_inventory_id: string;
+  hospital_id: string;
+  hospital_name: string;
+  coordinates: { lng: number; lat: number };
+  blood_group: BloodGroup;
+  /** "ตรงกลุ่ม (Exact Match)" หรือ "กลุ่มทดแทนฉุกเฉิน (Compatible Match)" — AI cross-matching อัตโนมัติ */
+  match_type: string;
+  available_units: number;
+  distance_km: number;
+  estimated_time_minutes: number;
+  is_estimate?: boolean;
+}
+
+
 export type DeliveryStatus = "PREPARING" | "DISPATCHED" | "EN_ROUTE" | "DELIVERED" | "FAILED";
 
 export interface DeliveryRecord {
@@ -152,9 +263,14 @@ export interface DeliveryRecord {
   received_at: string | null;
   createdAt?: string;
   updatedAt?: string;
-  // ฟิลด์แนบเพิ่มจาก GET /api/delivery (join จาก TransferRequest -> drug_ref/from_hospital/to_hospital)
+  // ฟิลด์แนบเพิ่มจาก GET /api/delivery (join จาก TransferRequest -> drug_ref/blood_group/from_hospital/to_hospital)
+  item_type?: TransferItemType;
   drug_generic_name?: string;
   drug_trade_name?: string;
+  blood_group?: BloodGroup | "";
+  component_type?: ComponentType | "";
+  /** ชื่อรายการพร้อมแสดงผล ใช้ได้ทั้งกรณียาและเลือดโดยไม่ต้องเช็ค item_type เอง */
+  item_display_name?: string;
   quantity?: number;
   from_hospital_id?: string;
   from_hospital_name?: string;

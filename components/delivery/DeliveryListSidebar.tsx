@@ -51,7 +51,7 @@ export default function DeliveryListSidebar({
           >
             <div className="flex items-center justify-between gap-2">
               <span className="text-[12px] font-medium text-text-hi">
-                {d.drug_generic_name || "—"}
+                {d.item_display_name || d.drug_generic_name || "—"}
               </span>
               <span
                 className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[9px] font-medium ${
