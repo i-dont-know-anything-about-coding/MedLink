@@ -139,7 +139,7 @@ export default function ExpiryTransferModal({ item, user, onClose }: ExpiryTrans
     </div>
 
     <div class="footer">
-      เอกสารนี้จัดทำจากระบบ StockSync และสามารถบันทึกเป็น PDF เพื่อใช้เป็นหลักฐานอิเล็กทรอนิกส์
+      เอกสารนี้จัดทำจากระบบ MedLink และสามารถบันทึกเป็น PDF เพื่อใช้เป็นหลักฐานอิเล็กทรอนิกส์
     </div>
   </div>
 </body>
@@ -327,7 +327,7 @@ export default function ExpiryTransferModal({ item, user, onClose }: ExpiryTrans
               </div>
 
               <div className="mt-6 text-center text-[10px] text-slate-500">
-                เอกสารนี้จัดทำจากระบบ StockSync และสามารถบันทึกเป็น PDF เพื่อใช้เป็นหลักฐานอิเล็กทรอนิกส์
+                เอกสารนี้จัดทำจากระบบ MedLink และสามารถบันทึกเป็น PDF เพื่อใช้เป็นหลักฐานอิเล็กทรอนิกส์
               </div>
             </div>
           </div>

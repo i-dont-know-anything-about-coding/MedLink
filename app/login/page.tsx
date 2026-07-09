@@ -43,10 +43,10 @@ export default function LoginPage() {
       <div className="flex flex-1 basis-3/5 flex-col items-center justify-center border-b border-border bg-bg p-10 md:border-b-0 md:border-r">
         <div className="flex flex-col items-center gap-6 text-center">
           <div className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl bg-accent font-data text-[32px] font-semibold text-white">
-            S
+            M
           </div>
           <div className="text-[34px] font-semibold tracking-tight text-text-hi">
-            Stock<span className="text-accent">Sync</span>
+            Med<span className="text-accent">Link</span>
           </div>
           <p className="max-w-sm text-[15px] leading-relaxed text-text-lo">
             มองเห็นยาทุกขวด ทุกโรงพยาบาล

@@ -166,7 +166,7 @@ export function buildTransferDocumentHtml(
     </div>
 
     <div class="footer">
-      เอกสารนี้จัดทำจากระบบ StockSync และสามารถบันทึกเป็น PDF เพื่อใช้เป็นหลักฐานอิเล็กทรอนิกส์
+      เอกสารนี้จัดทำจากระบบ MedLink และสามารถบันทึกเป็น PDF เพื่อใช้เป็นหลักฐานอิเล็กทรอนิกส์
     </div>
   </div>
 </body>

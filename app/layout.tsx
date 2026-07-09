@@ -17,7 +17,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "StockSync — ระบบจัดการสต็อกยาอัจฉริยะ",
+  title: "MedLink — ระบบจัดการสต็อกยาอัจฉริยะ",
   description:
     "AI-Powered Drug Inventory Visibility & Rebalancing Platform — มองเห็นยาทุกขวด ทุกโรงพยาบาล ในเขตสุขภาพเดียวกัน",
 };

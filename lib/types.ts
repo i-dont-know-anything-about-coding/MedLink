@@ -1,6 +1,6 @@
 /**
  * Shared types — สร้างให้ตรงกับ Mongoose Models และ Controllers จริงของ
- * Backend_Stocksync-main (Express + MongoDB) ไม่ใช่ตามเอกสารสเปกเดิมที่อ้าง Next.js Route Handlers
+ * Backend_Medlink-main (Express + MongoDB) ไม่ใช่ตามเอกสารสเปกเดิมที่อ้าง Next.js Route Handlers
  *
  * อ้างอิงไฟล์จริง:
  * - models/Hospital.js, Drug.js, Inventory.js, TransferRequest.js, Delivery.js, User.js, AISuggestionLog.js

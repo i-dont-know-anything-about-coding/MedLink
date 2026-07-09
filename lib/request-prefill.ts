@@ -13,7 +13,7 @@ export interface RequestPrefill {
   componentType?: string;
 }
 
-const PREFILL_KEY = "stocksync_request_prefill";
+const PREFILL_KEY = "medlink_request_prefill";
 
 export function setRequestPrefill(prefill: RequestPrefill) {
   if (typeof window === "undefined") return;

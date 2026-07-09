@@ -26,7 +26,7 @@ export default function Topbar({ user }: { user: SessionUser }) {
   return (
     <header className="flex h-12 flex-shrink-0 items-center gap-3 border-b border-border bg-panel px-4">
       <div className="flex h-7 w-7 items-center justify-center rounded-md bg-accent font-data text-[14px] font-semibold text-white">
-        S
+        M
       </div>
       <span className="rounded-md bg-bg px-2.5 py-1 text-[11px] text-text-lo">
         เขตสุขภาพ {HEALTH_ZONE}

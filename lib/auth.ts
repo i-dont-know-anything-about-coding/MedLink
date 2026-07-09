@@ -12,7 +12,7 @@ import type { SessionUser } from "./types";
  * Authorization: Bearer <token> ในทุก request ที่ backend ต้องการสิทธิ์
  */
 
-const SESSION_KEY = "stocksync_session";
+const SESSION_KEY = "medlink_session";
 
 interface LoginApiResponse {
   success: boolean;
